@@ -128,6 +128,40 @@ Broker flag row colours: 🔴 Likely · 🟠 Suspected · 🟡 Doubt
 
 ---
 
+## Sample output
+
+### The raw Facebook post
+
+![Facebook post — Prestige High Fields](sample_run/Screenshot%202026-05-07%20014948.png)
+
+> Posted by **-** in *Flat and Flatmates (Hyderabad)*
+
+### What the tool extracts and outputs in Excel
+
+| Column | Value |
+|--------|-------|
+| **Match Score** | 81 |
+| **Post Link** | [View Post](https://www.facebook.com/groups/320292845738195/posts/1630054568095343/) |
+| **Society / Building** | Prestige High Fields |
+| **Area / Locality** | Financial District |
+| **Commute Estimate** | Same area |
+| **Flat Type** | 3BHK |
+| **Room Type** | Single |
+| **Rent** | ₹18,500 |
+| **Maintenance** | ₹0 (included) |
+| **Total Monthly** | ₹18,500 |
+| **Deposit** | 3 months |
+| **Brokerage** | None |
+| **Available From** | May 24th |
+| **Furnishing** | Fully Furnished |
+| **Gated Community** | Yes |
+| **Broker Flag** | None |
+| **Amenities** | Premium clubhouse, gym, swimming pool, sauna, tennis/badminton/squash courts, private cinema, café, 24/7 gated security. 31st floor with balcony view. |
+
+Claude scores this **81/100** — high marks for being in the same area as the office (Financial District ↔ Raidurg), premium gated society, and no broker. Slight dip because ₹18,500 is near the lower edge of the ideal budget range.
+
+---
+
 ## Feedback / Human-in-the-Loop
 
 The **Feedback** column (light blue) makes the tool smarter over time:
