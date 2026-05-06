@@ -74,11 +74,11 @@ Then **stop** — do not continue to the scraping steps.
 
 **1a.** Use the Read tool to read `config.json`. If it does not exist, tell the user to run `/fb-rentals setup` first and stop.
 
-**1b.** Use Glob to check for `scraper.py` and `excel_generator.py`. If either is missing, tell the user the file is missing and stop.
+**1b.** Use Glob to check for `excel_generator.py`. If it is missing, tell the user the file is missing and stop.
 
-**1c.** Install/verify dependencies via PowerShell:
+**1c.** Activate the virtual environment and install/verify dependencies via PowerShell:
 ```
-pip install playwright openpyxl python-dateutil --quiet; playwright install chromium 2>&1 | Select-String -Pattern "chromium" | Select-Object -Last 2
+.venv\Scripts\Activate.ps1; pip install openpyxl python-dateutil --quiet
 ```
 
 ---
@@ -93,19 +93,116 @@ This writes `existing_data.json`. Read that file and note all rows where `feedba
 
 ---
 
-### STEP 3 — Scrape
+### STEP 3 — Scrape using Chrome MCP
 
-Tell the user: "Opening a browser window now. Please log in to Facebook, then press Enter in the terminal to start scraping."
+*All browser interaction is done via Chrome DevTools MCP.
 
-Run in PowerShell:
+**3a. Open group tabs:**
+For each URL in `group_urls`, call `mcp__chrome-devtools__new_page` with that URL.
+
+Tell the user: "Facebook group(s) are now open in Chrome. Please log in if needed, solve any CAPTCHA, and confirm you can see the group posts. Then reply 'ready' to continue."
+
+Wait for the user to reply before proceeding.
+
+**3b. Extract posts via `evaluate_script`:**
+For each group tab (use `mcp__chrome-devtools__select_page` to switch to it), call `mcp__chrome-devtools__evaluate_script` with the following JS. Replace `HOURS` with the actual number:
+
+```javascript
+async () => {
+  const HOURS = HOURS_PLACEHOLDER;
+  const cutoff = Date.now() - HOURS * 60 * 60 * 1000;
+
+  // Scroll to top first, then slowly scroll down to load posts
+  window.scrollTo(0, 0);
+  await new Promise(r => setTimeout(r, 2000));
+
+  for (let i = 0; i < 30; i++) {
+    window.scrollBy(0, 700);
+    await new Promise(r => setTimeout(r, 1000));
+    // Click "See more" buttons as we scroll to expand truncated posts
+    document.querySelectorAll('div[role="button"], span[role="button"]').forEach(el => {
+      if (el.innerText.trim().toLowerCase() === 'see more') el.click();
+    });
+  }
+
+  // Wait for expansions to settle
+  await new Promise(r => setTimeout(r, 1500));
+
+  const results = [];
+  const seenUrls = new Set();
+  const seenTexts = new Set();
+
+  // Facebook now uses div[role="feed"] > div as feed item containers
+  const feedItems = document.querySelectorAll('div[role="feed"] > div');
+
+  feedItems.forEach((item, idx) => {
+    // Get longest dir="auto" text block (the post body)
+    let text = '';
+    item.querySelectorAll('div[dir="auto"]').forEach(el => {
+      const t = el.innerText.trim();
+      if (t.length > text.length) text = t;
+    });
+    if (text.length < 40) return;
+
+    // Deduplicate by first 80 chars of text
+    const textKey = text.slice(0, 80);
+    if (seenTexts.has(textKey)) return;
+    seenTexts.add(textKey);
+
+    // Post URL — strip query params to get clean post ID URL
+    let url = '';
+    item.querySelectorAll('a[href]').forEach(el => {
+      const href = (el.href || '').split('?')[0];
+      if (href.includes('/posts/') && !url) url = href;
+    });
+    if (!url) url = window.location.href.split('?')[0] + '#item-' + idx;
+    if (seenUrls.has(url)) return;
+    seenUrls.add(url);
+
+    // Author — first non-group, non-post Facebook profile link
+    let author = '';
+    item.querySelectorAll('a[href]').forEach(el => {
+      if (author) return;
+      const href = el.href || '';
+      const t = el.innerText.trim();
+      if (t.length > 1 && t.length < 80
+          && !href.includes('/groups/')
+          && !href.includes('/posts/')
+          && (href.includes('facebook.com') || href.includes('fb.com'))) {
+        author = t;
+      }
+    });
+
+    // Timestamp — parse relative time labels like "2h", "30m", "1d"
+    let timestamp_iso = '';
+    item.querySelectorAll('span, a').forEach(el => {
+      if (timestamp_iso) return;
+      const t = (el.innerText || '').trim();
+      const now = Date.now();
+      let ms = 0;
+      if (t.match(/^(\d+)m$/)) ms = parseInt(t) * 60000;
+      else if (t.match(/^(\d+)h$/)) ms = parseInt(t) * 3600000;
+      else if (t.match(/^(\d+)d$/)) ms = parseInt(t) * 86400000;
+      if (ms > 0) timestamp_iso = new Date(now - ms).toISOString();
+    });
+
+    // Skip if clearly outside time window (only if we have a timestamp)
+    if (timestamp_iso) {
+      const ts = new Date(timestamp_iso).getTime();
+      if (ts < cutoff) return;
+    }
+
+    results.push({ url, author, timestamp_iso, text: text.slice(0, 4000) });
+  });
+
+  return JSON.stringify(results);
+}
 ```
-python scraper.py --hours HOURS
-```
-(Replace HOURS with the actual number from Parse Arguments above.)
 
-Wait for it to complete. If it exits with an error, show the error and stop.
+**3c. Collect and save:**
+Collect the JSON results from all group tabs, merge into one array (deduplicate by `url`), and write to `raw_posts.json` using the Write tool.
 
-After scraping completes, use the Read tool to read `raw_posts.json`. If the file is empty or the array has 0 elements, tell the user no posts were found and suggest checking that the group is accessible while logged in.
+If the merged array has 0 elements, tell the user no posts were found and suggest verifying that the group is visible when logged in.
 
 ---
 
@@ -245,7 +342,8 @@ Then tell the user:
 
 ## Edge case notes
 
-- If Facebook shows a CAPTCHA, the browser will stay open. The user can solve it, then press Enter in the terminal.
-- If `raw_posts.json` has 0 posts, the group may require membership approval or the chronological sort URL may not work. Ask the user to verify they can see the group's posts when logged in.
+- If Facebook shows a CAPTCHA in Chrome, the user can solve it in the browser window and then reply 'ready' to continue.
+- If `raw_posts.json` has 0 posts, the group may require membership approval or Facebook's DOM selectors may have changed. Ask the user to verify they can see the group posts when logged in, and check if `div[role="feed"]` and its direct `div` children are present using the browser's DevTools. The selector `div[role="feed"] > div` is what the scraper relies on.
+- On subsequent runs, Chrome may already be logged in — the user can reply 'ready' immediately without logging in again.
 - On the very first run, `existing_data.json` will not exist — skip Step 2 gracefully.
 - If a post's `total_monthly` is 0 (price not mentioned), include it in output but apply a neutral budget score of 15. The user can decide.

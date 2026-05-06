@@ -20,6 +20,7 @@ A Claude Code slash command (`/fb-rentals`) that scrapes Facebook rental group p
 ## Prerequisites
 
 - [Claude Code](https://claude.ai/code) installed and authenticated
+- [Chrome DevTools MCP](https://github.com/nickytonline/chrome-devtools-mcp) configured in your `.mcp.json`
 - Python 3.10+
 - A Facebook account with access to the rental group(s)
 
@@ -37,16 +38,15 @@ cd fb-rental-tracker
 ### 2. Create a virtual environment and install dependencies
 
 ```bash
-python -m venv venv
+python -m venv .venv
 
 # Windows
-venv\Scripts\activate
+.venv\Scripts\activate
 
 # macOS / Linux
-source venv/bin/activate
+source .venv/bin/activate
 
 pip install -r requirements.txt
-playwright install chromium
 ```
 
 ### 3. Open Claude Code in this folder
@@ -94,9 +94,9 @@ This generates `config.json`. **Do not commit config.json** — it contains your
 
 ## What happens when you run it
 
-1. A Chromium browser window opens
-2. You log in to Facebook manually (your credentials never touch this tool)
-3. Press Enter in the terminal — Claude starts scraping
+1. Claude opens the Facebook group in Chrome via the Chrome DevTools MCP
+2. You log in to Facebook in the browser (your credentials never touch this tool), then reply "ready"
+3. Claude scrolls the feed, expands truncated posts, and extracts all listings
 4. Claude reads every post and extracts: society, area, rent, deposit, brokerage, amenities, contact, Maps link
 5. Cross-post broker detection flags repeated phone numbers, template copy-pastes, and prolific posters
 6. Every listing gets a **Match Score** (0–100) based on your config
@@ -143,20 +143,19 @@ The **Feedback** column (light blue) makes the tool smarter over time:
 ## Files
 
 ```
-├── .claude/skills/fb-rentals.md   Claude Code skill definition
-├── scraper.py                      Playwright browser automation
-├── excel_generator.py              Excel writer with formatting
+├── .claude/skills/fb-rentals/SKILL.md   Claude Code skill definition
+├── excel_generator.py                    Excel writer with formatting
 ├── requirements.txt
-├── config.example.json             Template — copy to config.json and fill in
-└── listings.xlsx                   Generated at runtime (gitignored)
+├── config.example.json                   Template — copy to config.json and fill in
+└── listings.xlsx                         Generated at runtime (gitignored)
 ```
 
 ---
 
 ## Notes & limitations
 
-- Facebook's DOM changes periodically. If scraping breaks, open an issue — the selector in `scraper.py` (`div[role="article"]`) is the most stable currently available.
-- This tool uses your logged-in browser session. Your credentials are never stored or transmitted by this code.
+- Facebook's feed DOM uses `div[role="feed"] > div` as post containers. If scraping breaks, this selector is the first thing to check in the browser DevTools.
+- This tool uses your logged-in browser session via Chrome DevTools MCP. Your credentials are never stored or transmitted by this code.
 - Works best for Indian rental groups (₹ amounts, BHK terminology, Maps links) but the config is adaptable.
 
 ---

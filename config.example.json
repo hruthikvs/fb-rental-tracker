@@ -1,13 +1,13 @@
 {
   "group_urls": [
-    "https://www.facebook.com/groups/YOUR_GROUP_ID_HERE/"
+    "https://www.facebook.com/groups/320292845738195"
   ],
   "time_window_hours": 24,
-  "budget_ideal_min": 24000,
-  "budget_ideal_max": 26000,
-  "budget_hard_min": 21600,
-  "budget_hard_max": 28600,
-  "office_location": "Gachibowli",
+  "budget_ideal_min": 20000,
+  "budget_ideal_max": 24000,
+  "budget_hard_min": 18000,
+  "budget_hard_max": 26000,
+  "office_location": "Qualcomm Raheja Commerzone, Raidurg",
   "preferences": {
     "gated_community": "preferred",
     "diet": "non-vegetarian",
@@ -15,7 +15,7 @@
     "preferred_areas": [],
     "avoid_areas": [],
     "room_type": "any_private",
-    "preferred_flat_types": ["2BHK", "3BHK", "4BHK"]
+    "preferred_flat_types": [ "3BHK"]
   },
   "output_file": "listings.xlsx"
 }
