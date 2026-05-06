@@ -1,0 +1,21 @@
+{
+  "group_urls": [
+    "https://www.facebook.com/groups/YOUR_GROUP_ID_HERE/"
+  ],
+  "time_window_hours": 24,
+  "budget_ideal_min": 24000,
+  "budget_ideal_max": 26000,
+  "budget_hard_min": 21600,
+  "budget_hard_max": 28600,
+  "office_location": "Gachibowli",
+  "preferences": {
+    "gated_community": "preferred",
+    "diet": "non-vegetarian",
+    "gender": "male",
+    "preferred_areas": [],
+    "avoid_areas": [],
+    "room_type": "any_private",
+    "preferred_flat_types": ["2BHK", "3BHK", "4BHK"]
+  },
+  "output_file": "listings.xlsx"
+}
