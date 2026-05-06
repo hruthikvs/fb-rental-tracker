@@ -132,7 +132,8 @@ Broker flag row colours: 🔴 Likely · 🟠 Suspected · 🟡 Doubt
 
 ### The raw Facebook post
 
-![Facebook post — Prestige High Fields](sample_run/Screenshot%202026-05-07%20014948.png)
+![Facebook post — Prestige High Fields, part 1](sample_run/Screenshot%202026-05-07%20014948.png)
+![Facebook post — Prestige High Fields, part 2](sample_run/Screenshot%202026-05-07%20015300.png)
 
 > Posted by **-** in *Flat and Flatmates (Hyderabad)*
 
